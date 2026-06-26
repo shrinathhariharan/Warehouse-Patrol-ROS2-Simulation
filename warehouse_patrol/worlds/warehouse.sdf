@@ -1,0 +1,383 @@
+<?xml version="1.0" ?>
+<!--
+  Warehouse patrol simulation world.
+  Robot model is inlined directly to ensure plugins load correctly.
+
+  Room waypoints (x, y) used by patrol_scheduler.py:
+    loading_dock: (1.5, 1.5)
+    aisle_a:      (4.0, 1.5)
+    storage_a:    (7.0, 1.5)
+    aisle_b:      (4.0, 4.5)
+    storage_b:    (7.0, 4.5)
+    office:       (1.5, 4.5)
+-->
+<sdf version="1.8">
+  <world name="warehouse">
+
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre</render_engine>
+    </plugin>
+
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 12 0 0 0</pose>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.3 0.3 0.3 1</specular>
+      <direction>-0.5 0.2 -0.9</direction>
+    </light>
+
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>30 30</size>
+            </plane>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>30 30</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.75 0.75 0.75 1</ambient>
+            <diffuse>0.75 0.75 0.75 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Perimeter walls (10 m x 6 m warehouse) -->
+    <model name="wall_north">
+      <static>true</static>
+      <pose>5 6 1 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>10.2 0.2 2</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>10.2 0.2 2</size></box></geometry>
+          <material><ambient>0.6 0.6 0.65 1</ambient><diffuse>0.6 0.6 0.65 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="wall_south">
+      <static>true</static>
+      <pose>5 0 1 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>10.2 0.2 2</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>10.2 0.2 2</size></box></geometry>
+          <material><ambient>0.6 0.6 0.65 1</ambient><diffuse>0.6 0.6 0.65 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="wall_east">
+      <static>true</static>
+      <pose>10 3 1 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 6.2 2</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.2 6.2 2</size></box></geometry>
+          <material><ambient>0.6 0.6 0.65 1</ambient><diffuse>0.6 0.6 0.65 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="wall_west">
+      <static>true</static>
+      <pose>0 3 1 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 6.2 2</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.2 6.2 2</size></box></geometry>
+          <material><ambient>0.6 0.6 0.65 1</ambient><diffuse>0.6 0.6 0.65 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Central aisle divider -->
+    <model name="aisle_divider">
+      <static>true</static>
+      <pose>5.5 3 0.75 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.15 4.5 1.5</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.15 4.5 1.5</size></box></geometry>
+          <material><ambient>0.55 0.45 0.35 1</ambient><diffuse>0.55 0.45 0.35 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Shelf racks -->
+    <model name="shelf_row_a1">
+      <static>true</static>
+      <pose>2.5 2.2 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>1.2 0.8 1.2</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>1.2 0.8 1.2</size></box></geometry>
+          <material><ambient>0.4 0.35 0.3 1</ambient><diffuse>0.4 0.35 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="shelf_row_a2">
+      <static>true</static>
+      <pose>7.5 2.2 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>1.2 0.8 1.2</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>1.2 0.8 1.2</size></box></geometry>
+          <material><ambient>0.4 0.35 0.3 1</ambient><diffuse>0.4 0.35 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="shelf_row_b1">
+      <static>true</static>
+      <pose>2.5 4.8 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>1.2 0.8 1.2</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>1.2 0.8 1.2</size></box></geometry>
+          <material><ambient>0.4 0.35 0.3 1</ambient><diffuse>0.4 0.35 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+    <model name="shelf_row_b2">
+      <static>true</static>
+      <pose>7.5 4.8 0.6 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>1.2 0.8 1.2</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>1.2 0.8 1.2</size></box></geometry>
+          <material><ambient>0.4 0.35 0.3 1</ambient><diffuse>0.4 0.35 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Random pallet obstacle for safety-filter demos -->
+    <model name="pallet_obstacle">
+      <static>true</static>
+      <pose>4.0 3.0 0.25 0 0 0.4</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.6 0.6 0.5</size></box></geometry></collision>
+        <visual name="visual"><geometry><box><size>0.6 0.6 0.5</size></box></geometry>
+          <material><ambient>0.7 0.55 0.2 1</ambient><diffuse>0.7 0.55 0.2 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Patrol robot - inlined from model.sdf to ensure plugins load correctly -->
+    <model name="patrol_robot">
+      <pose>1.5 1.5 0.08 0 0 0</pose>
+
+      <link name="base_link">
+        <pose>0 0 0.08 0 0 0</pose>
+        <inertial>
+          <mass>8.0</mass>
+          <inertia>
+            <ixx>0.08</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.12</iyy>
+            <iyz>0</iyz>
+            <izz>0.16</izz>
+          </inertia>
+        </inertial>
+        <visual name="body_visual">
+          <geometry>
+            <box><size>0.55 0.40 0.16</size></box>
+          </geometry>
+          <material>
+            <ambient>0.2 0.45 0.75 1</ambient>
+            <diffuse>0.2 0.45 0.75 1</diffuse>
+          </material>
+        </visual>
+        <collision name="body_collision">
+          <geometry>
+            <box><size>0.55 0.40 0.16</size></box>
+          </geometry>
+        </collision>
+      </link>
+
+      <link name="left_wheel">
+        <pose>0 0.22 0.05 -1.5707 0 0</pose>
+        <inertial>
+          <mass>0.5</mass>
+          <inertia>
+            <ixx>0.001</ixx>
+            <iyy>0.001</iyy>
+            <izz>0.001</izz>
+          </inertia>
+        </inertial>
+        <visual name="left_wheel_visual">
+          <geometry>
+            <cylinder><radius>0.05</radius><length>0.04</length></cylinder>
+          </geometry>
+          <material>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+          </material>
+        </visual>
+        <collision name="left_wheel_collision">
+          <geometry>
+            <cylinder><radius>0.05</radius><length>0.04</length></cylinder>
+          </geometry>
+        </collision>
+      </link>
+
+      <link name="right_wheel">
+        <pose>0 -0.22 0.05 -1.5707 0 0</pose>
+        <inertial>
+          <mass>0.5</mass>
+          <inertia>
+            <ixx>0.001</ixx>
+            <iyy>0.001</iyy>
+            <izz>0.001</izz>
+          </inertia>
+        </inertial>
+        <visual name="right_wheel_visual">
+          <geometry>
+            <cylinder><radius>0.05</radius><length>0.04</length></cylinder>
+          </geometry>
+          <material>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+          </material>
+        </visual>
+        <collision name="right_wheel_collision">
+          <geometry>
+            <cylinder><radius>0.05</radius><length>0.04</length></cylinder>
+          </geometry>
+        </collision>
+      </link>
+
+      <link name="caster">
+        <pose>-0.22 0 0.03 0 0 0</pose>
+        <inertial>
+          <mass>0.2</mass>
+          <inertia>
+            <ixx>0.0001</ixx>
+            <iyy>0.0001</iyy>
+            <izz>0.0001</izz>
+          </inertia>
+        </inertial>
+        <visual name="caster_visual">
+          <geometry>
+            <sphere><radius>0.03</radius></sphere>
+          </geometry>
+          <material>
+            <ambient>0.3 0.3 0.3 1</ambient>
+            <diffuse>0.3 0.3 0.3 1</diffuse>
+          </material>
+        </visual>
+        <collision name="caster_collision">
+          <geometry>
+            <sphere><radius>0.03</radius></sphere>
+          </geometry>
+        </collision>
+      </link>
+
+      <link name="lidar_link">
+        <pose>0.05 0 0.18 0 0 0</pose>
+        <inertial>
+          <mass>0.1</mass>
+          <inertia>
+            <ixx>0.0001</ixx>
+            <iyy>0.0001</iyy>
+            <izz>0.0001</izz>
+          </inertia>
+        </inertial>
+        <visual name="lidar_visual">
+          <geometry>
+            <cylinder><radius>0.04</radius><length>0.05</length></cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.5 0.1 1</ambient>
+            <diffuse>0.9 0.5 0.1 1</diffuse>
+          </material>
+        </visual>
+        <sensor name="lidar" type="lidar">
+          <topic>scan</topic>
+          <gz_frame_id>lidar_link</gz_frame_id>
+          <update_rate>10</update_rate>
+          <lidar>
+            <scan>
+              <horizontal>
+                <samples>360</samples>
+                <resolution>1</resolution>
+                <min_angle>-3.14159</min_angle>
+                <max_angle>3.14159</max_angle>
+              </horizontal>
+              <vertical>
+                <samples>1</samples>
+                <resolution>1</resolution>
+                <min_angle>0</min_angle>
+                <max_angle>0</max_angle>
+              </vertical>
+            </scan>
+            <range>
+              <min>0.12</min>
+              <max>8.0</max>
+              <resolution>0.01</resolution>
+            </range>
+          </lidar>
+          <visualize>false</visualize>
+        </sensor>
+      </link>
+
+      <joint name="left_wheel_joint" type="revolute">
+        <parent>base_link</parent>
+        <child>left_wheel</child>
+        <axis>
+          <xyz>0 0 1</xyz>
+          <limit>
+            <lower>-1e308</lower>
+            <upper>1e308</upper>
+          </limit>
+        </axis>
+      </joint>
+
+      <joint name="right_wheel_joint" type="revolute">
+        <parent>base_link</parent>
+        <child>right_wheel</child>
+        <axis>
+          <xyz>0 0 1</xyz>
+          <limit>
+            <lower>-1e308</lower>
+            <upper>1e308</upper>
+          </limit>
+        </axis>
+      </joint>
+
+      <joint name="caster_joint" type="ball">
+        <parent>base_link</parent>
+        <child>caster</child>
+      </joint>
+
+      <joint name="lidar_joint" type="fixed">
+        <parent>base_link</parent>
+        <child>lidar_link</child>
+      </joint>
+
+      <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
+        <left_joint>left_wheel_joint</left_joint>
+        <right_joint>right_wheel_joint</right_joint>
+        <wheel_separation>0.44</wheel_separation>
+        <wheel_radius>0.05</wheel_radius>
+        <topic>cmd_vel</topic>
+        <odom_topic>odometry</odom_topic>
+        <frame_id>odom</frame_id>
+        <child_frame_id>base_link</child_frame_id>
+        <odom_publish_frequency>30</odom_publish_frequency>
+        <max_linear_velocity>0.6</max_linear_velocity>
+        <min_linear_velocity>-0.3</min_linear_velocity>
+        <max_angular_velocity>1.2</max_angular_velocity>
+        <min_angular_velocity>-1.2</min_angular_velocity>
+      </plugin>
+
+    </model>
+
+  </world>
+</sdf>
